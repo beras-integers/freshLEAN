@@ -1,0 +1,10 @@
+name = "beras-hyperbolic"
+version = "0.1.0"
+defaultTargets = ["beras-hyperbolic"]
+
+[[lean_lib]]
+name = "BerasHyperbolic"
+
+[[lean_exe]]
+name = "beras-hyperbolic"
+root = "Main"
