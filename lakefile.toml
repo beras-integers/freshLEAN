@@ -2,6 +2,11 @@ name = "beras-hyperbolic"
 version = "0.1.0"
 defaultTargets = ["beras-hyperbolic"]
 
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.33.0-rc2"
+
 [[lean_lib]]
 name = "BerasHyperbolic"
 
