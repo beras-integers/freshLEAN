@@ -1,0 +1,9 @@
+import BerasHyperbolic.Manifold
+#check Hyperbolic.GeodesicRay
+#check @Hyperbolic.Asymptotic
+#check @Hyperbolic.asymptoticSetoid
+#check @Hyperbolic.EquivClass
+#check @Hyperbolic.IdealBoundary
+#check @Hyperbolic.angleAtIdealPoints
+#check @Hyperbolic.angleIdealOrdinary
+#check @Hyperbolic.Cone

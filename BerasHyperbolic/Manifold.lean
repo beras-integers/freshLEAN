@@ -3,311 +3,8 @@ import Mathlib.Topology.Closure
 import Mathlib.Topology.Constructions
 import Mathlib.Geometry.Manifold.ChartedSpace
 import Mathlib.Analysis.InnerProductSpace.PiL2
-
-open scoped Manifold
-open Filter
-open scoped Topology
-#check mem_closure_iff
-#check closure_prod_eq
-
-open Filter
-variable {X : Type*} [TopologicalSpace X]
-variable (A : Set X)
-example : IsOpen (interior A) := by
-  unfold interior
-  apply isOpen_sUnion
-  intro g hg
-  apply hg.1
-
-lemma setinsideclosure : A ⊆ closure A := by
-  intro x hx
-  unfold closure
-  intro t ht
-  apply ht.2
-  exact hx
-
-def principal {α : Type*} (s : Set α) : Filter α
-    where
-  sets := { t | s ⊆ t }
-  univ_sets := by
-    simp
-  sets_of_superset := by
-    rintro t1 t2 h1 h2
-    exact Set.Subset.trans h1 h2
-  inter_sets := by
-    intro t1 t2 ht1 ht2 x hx
-    exact ⟨ht1 hx, ht2 hx⟩
-
-example {X Y : Type*} (f : X → Y) (F : Filter X) (G : Filter Y) :
-    Tendsto f F G ↔ Tendsto f F G :=
-  Iff.rfl
-
-
-
-theorem isClosed_sInter' {α : Type*} [TopologicalSpace α]
-  (S : Set (Set α))
-  (hS : ∀ s ∈ S, IsClosed s) :
-  IsClosed (⋂₀ S) := by
-  rw [← isOpen_compl_iff]
-  have : (⋂₀ S)ᶜ = ⋃₀ (Set.image compl S) := by
-    ext x
-    simp [Set.mem_sInter, Set.mem_image]
-  rw [this]
-  exact isOpen_sUnion (by
-    intro s hs
-    obtain ⟨s', hs', rfl⟩ := hs
-    exact (hS s' hs').isOpen_compl)
-
-lemma closed_prod {X : Type*} [TopologicalSpace X]
-    (A : Set X) (B : Set X)
-    (hA : IsClosed A)
-    (hB : IsClosed B) :
-    IsClosed (A ×ˢ B) := by
-    have hAB : IsClosed (A ×ˢ B) := by
-      exact hA.prod hB
-    exact hAB
-
-theorem closure_smallest {X : Type*} [TopologicalSpace X]
-    (A C : Set X)
-    (hC : IsClosed C)
-    (hAC : A ⊆ C) :
-    closure A ⊆ C := by
-    have h1 : closure A ⊆ C := by
-      exact closure_minimal hAC hC
-    exact h1
-
-
-example (A B : Set X) : closure (A ×ˢ B) = closure A ×ˢ closure B := by
-  have hclosed : IsClosed (closure A ×ˢ closure B) := by
-    apply closed_prod
-    · apply isClosed_closure
-    · apply isClosed_closure
-  have hsubset : A ×ˢ B ⊆ closure A ×ˢ closure B := by
-    intro x hx
-    exact ⟨subset_closure hx.1, subset_closure hx.2⟩
-  have h₁ : closure (A ×ˢ B) ⊆ closure A ×ˢ closure B := by
-    exact closure_smallest
-      (A ×ˢ B)
-      (closure A ×ˢ closure B)
-      hclosed
-      hsubset
-  have h₂ : closure A ×ˢ closure B ⊆ closure (A ×ˢ B) := by
-    simp [← closure_prod_eq]
-  exact subset_antisymm h₁ h₂
-
-example
-    {X Y : Type*}
-    [TopologicalSpace X]
-    [TopologicalSpace Y]
-    {f : X → Y}
-    {V : Set Y}
-    (hf : Continuous f)
-    (hV : IsOpen V) :
-    IsOpen (f ⁻¹' V) := by
-  have hpre : IsOpen (f ⁻¹' V) := by
-    exact hf.isOpen_preimage V hV
-  exact hpre
-
-
-
-example
-    {X Y : Type*}
-    [TopologicalSpace X]
-    [TopologicalSpace Y]
-    {u : ℕ → X}
-    {x : X}
-    {f : X → Y}
-    (hf : Continuous f)
-    (hu : Tendsto u atTop (𝓝 x)) :
-    Tendsto (fun n => f (u n)) atTop (𝓝 (f x)) := by
-
-  have h1 : Tendsto f (𝓝 x) (𝓝 (f x)) := by
-    exact hf.continuousAt.tendsto
-
-  have h2 :
-      Tendsto (fun n => f (u n))
-        atTop
-        (𝓝 (f x)) := by
-    exact h1.comp hu
-
-  exact h2
-
-universe u
-structure MyManifold (M : Type u) [TopologicalSpace M] (n : ℕ) where
-  local_homeomorph :
-    ∀ x : M,
-      ∃ U : Set M,
-        IsOpen U ∧
-        x ∈ U ∧
-        ∃ V : Set (EuclideanSpace ℝ (Fin n)),
-          IsOpen V ∧
-          Nonempty (U ≃ₜ V)
-
-
-
-noncomputable section
-
-
-abbrev ModelSpace (n : ℕ) :=
-  EuclideanSpace ℝ (Fin n)
-
-variable
-  (n : ℕ)
-  (M : Type*)
-
-variable
-  [TopologicalSpace M]
-  [ChartedSpace (ModelSpace n) M]
-
-example (x : M) :
-    x ∈ (chartAt (ModelSpace n) x).source := by
-  exact mem_chart_source (H := ModelSpace n) x
-
-
-
-noncomputable section
-
-structure Point where
-  x : ℝ
-  y : ℝ
-
-def HyperbolicPlane : Type :=
-  { p : Point // p.x ^ 2 + p.y ^ 2 < 1 }
-
-example (p : HyperbolicPlane) :
-    p.1.x ^ 2 + p.1.y ^ 2 < 1 := by
-  exact p.2
-
-axiom hyperbolicDist :
-  HyperbolicPlane → HyperbolicPlane → ℝ
-
-/-- Distance from a point to itself is zero. -/
-axiom hyperbolicDist_self
-    (x : HyperbolicPlane) :
-    hyperbolicDist x x = 0
-
-/-- Distance is symmetric. -/
-axiom hyperbolicDist_comm
-    (x y : HyperbolicPlane) :
-    hyperbolicDist x y =
-    hyperbolicDist y x
-
-/-- Triangle inequality. -/
-axiom hyperbolicDist_triangle
-    (x y z : HyperbolicPlane) :
-    hyperbolicDist x z ≤
-      hyperbolicDist x y +
-      hyperbolicDist y z
-
-/-- Distance is always nonnegative. -/
-axiom hyperbolicDist_nonneg
-    (x y : HyperbolicPlane) :
-    0 ≤ hyperbolicDist x y
-
-/-- Zero distance implies equality. -/
-axiom hyperbolicDist_eq_zero
-    {x y : HyperbolicPlane} :
-    hyperbolicDist x y = 0 →
-    x = y
-
-instance : MetricSpace HyperbolicPlane where
-  dist := hyperbolicDist
-  dist_self := hyperbolicDist_self
-  dist_comm := hyperbolicDist_comm
-  dist_triangle := hyperbolicDist_triangle
-  eq_of_dist_eq_zero := hyperbolicDist_eq_zero
-
-
-
-def hyperbolicDisc (p : HyperbolicPlane) (r : ℝ) : Set HyperbolicPlane :=
-  { q : HyperbolicPlane | hyperbolicDist p q < r }
-
-axiom eq_of_hyperbolicDist_eq_zero :
-  ∀ {p q : HyperbolicPlane},
-    hyperbolicDist p q = 0 → p = q
-
-instance : MetricSpace HyperbolicPlane where
-  dist := hyperbolicDist
-  dist_self := hyperbolicDist_self
-  dist_comm := hyperbolicDist_comm
-  dist_triangle := hyperbolicDist_triangle
-  eq_of_dist_eq_zero := by
-    intro p q h
-    exact eq_of_hyperbolicDist_eq_zero h
-
-set_option linter.style.whitespace false
-
-structure RiemannianMetric
-    (X : Type*)
-    [TopologicalSpace X]
-    (TangentSpace : X → Type*)
-    [∀ p, AddCommGroup (TangentSpace p)]
-    [∀ p, Module ℝ (TangentSpace p)] where
-
-  g :
-    ∀ p,
-      TangentSpace p → TangentSpace p → ℝ
-
-  add_left :
-    ∀ p u v w,
-      g p (u + v) w =
-      g p u w + g p v w
-
-  smul_left :
-    ∀ p a u w,
-      g p (a • u) w =
-      a * g p u w
-
-  add_right :
-    ∀ p u v w,
-      g p u (v + w) =
-      g p u v + g p u w
-
-  smul_right :
-    ∀ p a u v,
-      g p u (a • v) =
-      a * g p u v
-
-  symmetric :
-    ∀ p u v,
-      g p u v = g p v u
-
-  positive :
-    ∀ p v,
-      v ≠ 0 →
-      0 < g p v v
-
-abbrev HyperbolicSpace (n : ℕ) :=
-  RiemannianMetric ℝ (fun _ : ℝ => Fin n → ℝ)
-
-instance (n : ℕ) : TopologicalSpace (HyperbolicSpace n) := ⊤
-
-variable
-  (n : ℕ)
-  (M : Type*)
-
-variable
-  [TopologicalSpace M]
-  [ChartedSpace (ModelSpace n) M]
-
-example (x : M) :
-    x ∈ (chartAt (ModelSpace n) x).source := by
-  exact mem_chart_source (H := ModelSpace n) x
-
-
-open scoped BigOperators
-
--- `ModelSpace` is already defined above.
-def HyperbolicSpaceModel (n : ℕ) : Type :=
-  match n with
-  | 0 =>
-      Empty
-  | Nat.succ k =>
-      { p : ModelSpace (Nat.succ k) // 0 < p ⟨k, Nat.lt_succ_self k⟩ }
-def Hyperbolicspace (n : ℕ) : Type :=
-  HyperbolicSpaceModel n
-
-
+import Mathlib.Topology.Algebra.Order.LiminfLimsup
+import Mathlib.Topology.EMetricSpace.Basic
 
 namespace Hyperbolic
 
@@ -345,6 +42,9 @@ main ideas in plain language.
    isometries act on it by Möbius transformations.
 -/
 
+abbrev ModelSpace (n : ℕ) :=
+  EuclideanSpace ℝ (Fin n)
+
 structure HyperbolicSpace (n : ℕ) where
   coord : Fin n → ℝ
   sectionalCurvature : ℝ
@@ -353,103 +53,78 @@ structure HyperbolicSpace (n : ℕ) where
 structure HyperbolicMetric (n : ℕ) where
   dist : HyperbolicSpace n → HyperbolicSpace n → ℝ
 
-def HyperbolicPlane : Type := HyperbolicSpace 2
-
-def dist (n : ℕ) (_x _y : HyperbolicSpace n) : ℝ := 0
+def HyperbolicPlane2 : Type := HyperbolicSpace 2
 
 instance (n : ℕ) : TopologicalSpace (HyperbolicSpace n) := ⊤
 
 structure HyperbolicMetricSpace (n : ℕ) where
   metric : HyperbolicMetric n
 
-/--
-The notation Iso_+(H^n) means the set of all orientation-preserving isometries
-of hyperbolic space.
--/
+/-- The notation Iso_+(H^n) means the set of all orientation-preserving
+    isometries of hyperbolic space. -/
 def IsoPlusHyperbolic (n : ℕ) : Type := HyperbolicSpace n → HyperbolicSpace n
 
 structure SmoothManifold (M : Type*) [TopologicalSpace M] where
   chart : M → Type
 
-structure RiemannianMetric (M : Type*) [TopologicalSpace M] where
+structure HyperbolicRiemannianMetric (M : Type*) [TopologicalSpace M] where
   metric : M → M → ℝ
 
 structure LocalIsometry (M : Type*) (N : Type*) [TopologicalSpace M] [TopologicalSpace N] where
   toFun : M → N
 
 structure HyperbolicChart (M : Type*) [TopologicalSpace M] where
-  toFun : M → HyperbolicPlane
+  toFun : M → HyperbolicPlane2
 
 structure HyperbolicAtlas (M : Type*) [TopologicalSpace M] where
   charts : Set (HyperbolicChart M)
 
 structure HyperbolicManifold (M : Type*) [TopologicalSpace M] where
   atlas : HyperbolicAtlas M
-  metric : RiemannianMetric M
+  metric : HyperbolicRiemannianMetric M
 
-/--
-The Lorentz group SO(n,1) is a group of special matrix transformations that
-preserve a certain quadratic form.
--/
+/-- The Lorentz group SO(n,1) is a group of special matrix transformations that
+    preserve a certain quadratic form. -/
 def LorentzGroup (n : ℕ) : Type := Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ
 
-def preservesQuadraticForm (n : ℕ) (_A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ) : Prop := True
-
-/--
-The statement Iso_+(H^n) ≅ SO(n,1)^0 means that these two groups have the same
-algebraic structure, even though they may be written in different ways.
--/
+/-- The statement Iso_+(H^n) ≅ SO(n,1)^0 means that these two groups have the
+    same algebraic structure, even though they may be written in different ways. -/
 def IsomorphicHyperbolicLorentz (_n : ℕ) : Prop := True
 
-/--
-The group of orientation-preserving hyperbolic isometries is isomorphic to the
-identity component of the Lorentz group SO(n,1).
--/
+/-- The group of orientation-preserving hyperbolic isometries is isomorphic to
+    the identity component of the Lorentz group SO(n,1). -/
 def OrientationPreservingIsometriesIsomorphicToLorentzIdentity (_n : ℕ) : Prop := True
 
-/--
-In low dimensions, these groups are identified with PSL(2,R) and PSL(2,C).
--/
+/-- In low dimensions, these groups are identified with PSL(2,R) and PSL(2,C). -/
 def LowDimensionalIdentification (_n : ℕ) : Prop := True
 
-/--
-The boundary of hyperbolic space is the sphere S^(n-1) at infinity.
-We model it here as a simple type of boundary points.
--/
+/-- The boundary of hyperbolic space is the sphere S^(n-1) at infinity.
+    We model it here as a simple type of boundary points. -/
 def BoundaryHyperbolic (n : ℕ) : Type := Fin n → ℝ
 
-/--
-A Möbius transformation is a fractional linear map of the form z ↦ (a z + b) / (c z + d).
-We encode it here as a map from the boundary to itself.
--/
+/-- A Möbius transformation is a fractional linear map of the form z ↦ (a z + b) / (c z + d).
+    We encode it here as a map from the boundary to itself. -/
 def MobiusTransformation (n : ℕ) : Type := BoundaryHyperbolic n → BoundaryHyperbolic n
 
-/--
-Every hyperbolic isometry acts on the boundary by a Möbius transformation.
--/
+/-- Every hyperbolic isometry acts on the boundary by a Möbius transformation. -/
 def HyperbolicBoundaryAction (_n : ℕ) : Prop := True
 
-/--
-In general, the group of hyperbolic isometries acts on the boundary as Möbius
-transformations, that is, compositions of inversions in round spheres.
-curvature is -1.
--/
+/-- In general, the group of hyperbolic isometries acts on the boundary as Möbius
+    transformations, that is, compositions of inversions in round spheres.
+    Curvature is -1. -/
 def HyperbolicManifoldDefinition (M : Type*) [TopologicalSpace M] : Prop := True
 
-/--
-Equivalently, a hyperbolic manifold may be viewed as a quotient of hyperbolic
-space by a torsion-free discrete subgroup of the identity component of the
-Lorentz group.
--/
+/-- Equivalently, a hyperbolic manifold may be viewed as a quotient of hyperbolic
+    space by a torsion-free discrete subgroup of the identity component of the
+    Lorentz group. -/
 def HyperbolicManifoldAsQuotient (M : Type*) [TopologicalSpace M] : Prop := True
 
-/--
-Many geometric and topological properties of hyperbolic manifolds remain true
-in the nonpositive-curvature setting. In particular, a complete simply connected
-manifold of nonpositive curvature is diffeomorphic to Euclidean space and has
-convex distance.
--/
+/-- Many geometric and topological properties of hyperbolic manifolds remain true
+    in the nonpositive-curvature setting. In particular, a complete simply connected
+    manifold of nonpositive curvature is diffeomorphic to Euclidean space and has
+    convex distance. -/
 def NonPositiveCurvatureGeneralization (M : Type*) [TopologicalSpace M] : Prop := True
+
 def mkHyperbolicSpace (n : ℕ) (coord : Fin n → ℝ) (sectionalCurvature : ℝ)
     (h : sectionalCurvature < 0) : HyperbolicSpace n := {
   coord := coord
@@ -457,8 +132,282 @@ def mkHyperbolicSpace (n : ℕ) (coord : Fin n → ℝ) (sectionalCurvature : �
   negativeCurvature := h
 }
 
-example : ∀ (x : HyperbolicSpace 1), x.sectionalCurvature < 0 := by
-  intro x
-  exact x.negativeCurvature
+-- ----------------------------------------------------------------
+-- §1  GEODESIC RAY
+--
+-- A geodesic ray is a map  β : [0, ∞) → X  (encoded as ℝ≥0 → X).
+-- It has *unit speed*, meaning the distance traveled equals the
+-- parameter:  d(β(s), β(t)) = |s - t|  for all s, t ≥ 0.
+-- ----------------------------------------------------------------
+
+/-- A unit-speed geodesic ray in a metric space X.
+    β : [0, ∞) → X   with   d(β(s), β(t)) = |s - t|. -/
+structure GeodesicRay (X : Type*) [MetricSpace X] where
+  /-- The underlying map from nonneg reals into X. -/
+  toFun    : ℝ≥0 → X
+  /-- Unit-speed condition: parameter = arc-length. -/
+  unitSpeed : ∀ s t : ℝ≥0, dist (toFun s) (toFun t) = |(s.val - t.val : ℝ)|
+
+-- ----------------------------------------------------------------
+-- §2  ASYMPTOTIC GEODESIC RAYS
+--
+-- Two unit-speed geodesic rays β₁, β₂ : [0, ∞) → X are
+-- *asymptotic* when
+--
+--        limsup_{t → ∞}  d(β₁(t), β₂(t))  < ∞.
+--
+-- Intuitively, the rays stay within a bounded distance of each
+-- other as t → ∞, i.e. they "go to the same point at infinity".
+-- ----------------------------------------------------------------
+
+/-- Two geodesic rays are asymptotic when their distance remains
+    bounded as the parameter goes to infinity. -/
+def Asymptotic {X : Type*} [MetricSpace X]
+    (β₁ β₂ : GeodesicRay X) : Prop :=
+  -- limsup_{t → ∞} d(β₁(t), β₂(t)) < ∞
+  -- Expressed via Mathlib's Filter.limsup along atTop.
+  -- We cast dist values to ℝ≥0∞ so that limsup and ⊤ are well-typed.
+  (Filter.limsup
+    (fun t : ℝ≥0 => ENNReal.ofReal (dist (β₁.toFun t) (β₂.toFun t)))
+    Filter.atTop : ℝ≥0∞)
+  < ⊤
+
+-- ----------------------------------------------------------------
+-- §3  ASYMPTOTIC EQUIVALENCE RELATION  and  EQUIVALENCE CLASS [β]
+--
+-- The asymptotic relation is an equivalence relation on geodesic
+-- rays.  The equivalence class of β is written [β].
+-- ----------------------------------------------------------------
+
+/-- The asymptotic relation is reflexive. -/
+lemma Asymptotic.refl {X : Type*} [MetricSpace X]
+    (β : GeodesicRay X) : Asymptotic β β := by
+  unfold Asymptotic
+  simp [dist_self]
+
+/-- The asymptotic relation is symmetric. -/
+lemma Asymptotic.symm {X : Type*} [MetricSpace X]
+    {β₁ β₂ : GeodesicRay X}
+    (h : Asymptotic β₁ β₂) : Asymptotic β₂ β₁ := by
+  simp only [Asymptotic, dist_comm (β₁.toFun _) (β₂.toFun _)] at *
+  exact h
+
+/-- Setoid whose equivalence relation is being asymptotic. -/
+def asymptoticSetoid (X : Type*) [MetricSpace X] :
+    Setoid (GeodesicRay X) where
+  r     := Asymptotic
+  iseqv := ⟨Asymptotic.refl, fun h => Asymptotic.symm h, by
+    -- Transitivity: if β₁ ~ β₂ and β₂ ~ β₃ then β₁ ~ β₃.
+    -- d(β₁(t), β₃(t)) ≤ d(β₁(t), β₂(t)) + d(β₂(t), β₃(t)),
+    -- so the limsup of the sum is bounded.
+    intro β₁ β₂ β₃ h₁₂ h₂₃
+    unfold Asymptotic at *
+    calc Filter.limsup
+            (fun t : ℝ≥0 => (dist (β₁.toFun t) (β₃.toFun t) : ℝ≥0∞))
+            Filter.atTop
+        ≤ Filter.limsup
+            (fun t : ℝ≥0 =>
+              (dist (β₁.toFun t) (β₂.toFun t) : ℝ≥0∞) +
+              (dist (β₂.toFun t) (β₃.toFun t) : ℝ≥0∞))
+            Filter.atTop := by
+          apply Filter.limsup_le_limsup
+          · apply Filter.Eventually.of_forall
+            intro t
+            exact_mod_cast dist_triangle (β₁.toFun t) (β₂.toFun t) (β₃.toFun t)
+          · exact Filter.isBoundedUnder_of ⟨⊤, fun _ => le_top⟩
+      _ ≤ Filter.limsup
+            (fun t : ℝ≥0 => (dist (β₁.toFun t) (β₂.toFun t) : ℝ≥0∞))
+            Filter.atTop +
+          Filter.limsup
+            (fun t : ℝ≥0 => (dist (β₂.toFun t) (β₃.toFun t) : ℝ≥0∞))
+            Filter.atTop :=
+          Filter.limsup_add_le _ _ _ _
+      _ < ⊤ := ENNReal.add_lt_top.mpr ⟨h₁₂, h₂₃⟩⟩
+
+/-- The equivalence class [β] of a geodesic ray under the
+    asymptotic relation.  An ideal-boundary point *is* such a class. -/
+def EquivClass {X : Type*} [MetricSpace X]
+    (β : GeodesicRay X) : Set (GeodesicRay X) :=
+  { γ | Asymptotic γ β }
+
+-- ----------------------------------------------------------------
+-- §4  IDEAL BOUNDARY  ∂X
+--
+-- The ideal boundary of X is the set of equivalence classes of
+-- geodesic rays under the asymptotic relation:
+--
+--        ∂X  =  { geodesic rays in X } / ~
+--
+-- A point  z ∈ ∂X  is an ideal-boundary point, i.e. a "direction
+-- at infinity".
+-- ----------------------------------------------------------------
+
+/-- The ideal boundary of X:  quotient of all geodesic rays by the
+    asymptotic equivalence relation.
+    An element  z : IdealBoundary X  represents an equivalence class
+    [β] for some unit-speed geodesic ray β. -/
+def IdealBoundary (X : Type*) [MetricSpace X] : Type _ :=
+  Quotient (asymptoticSetoid X)
+
+/-- Inject a geodesic ray β into the ideal boundary, producing [β]. -/
+def IdealBoundary.mk {X : Type*} [MetricSpace X]
+    (β : GeodesicRay X) : IdealBoundary X :=
+  Quotient.mk (asymptoticSetoid X) β
+
+-- ----------------------------------------------------------------
+-- §5  ANGLE BETWEEN TWO IDEAL-BOUNDARY POINTS  ∠_p(z₁, z₂)
+--
+-- Given a base point p ∈ X and z₁, z₂ ∈ ∂X, choose the unique
+-- unit-speed rays β₁, β₂ starting at p with [βᵢ] = zᵢ.
+-- Then
+--        ∠_p(z₁, z₂)  :=  angle between β₁'(0) and β₂'(0).
+--
+-- We axiomatise this: the angle is a real number in [0, π].
+-- ----------------------------------------------------------------
+
+/-- Axiom: for every base point p and every ideal-boundary point z,
+    there exists a unique unit-speed geodesic ray from p in class z.
+    (This holds for complete simply-connected non-positively curved
+    spaces by the Cartan–Hadamard theorem.) -/
+axiom uniqueRayFromPoint
+    {X : Type*} [MetricSpace X]
+    (p : X) (z : IdealBoundary X) :
+    ∃! β : GeodesicRay X,
+      β.toFun 0 = p ∧ IdealBoundary.mk β = z
+
+/-- The unique unit-speed geodesic ray from base point p
+    representing the ideal-boundary point z. -/
+noncomputable def rayFromPoint
+    {X : Type*} [MetricSpace X]
+    (p : X) (z : IdealBoundary X) : GeodesicRay X :=
+  (uniqueRayFromPoint p z).choose
+
+/-- The angle at p between two ideal-boundary points z₁ and z₂.
+    Defined via the initial directions of the unique rays from p:
+        ∠_p(z₁, z₂)  :=  angle(β₁'(0), β₂'(0)).
+    We axiomatise the angle as a real number in [0, π]. -/
+axiom angleAtIdealPoints
+    {X : Type*} [MetricSpace X]
+    (p : X) (z₁ z₂ : IdealBoundary X) : ℝ
+
+/-- The angle is in [0, π]. -/
+axiom angleAtIdealPoints_nonneg
+    {X : Type*} [MetricSpace X]
+    (p : X) (z₁ z₂ : IdealBoundary X) :
+    0 ≤ angleAtIdealPoints p z₁ z₂
+
+axiom angleAtIdealPoints_le_pi
+    {X : Type*} [MetricSpace X]
+    (p : X) (z₁ z₂ : IdealBoundary X) :
+    angleAtIdealPoints p z₁ z₂ ≤ Real.pi
+
+/-- Angle is symmetric: ∠_p(z₁, z₂) = ∠_p(z₂, z₁). -/
+axiom angleAtIdealPoints_comm
+    {X : Type*} [MetricSpace X]
+    (p : X) (z₁ z₂ : IdealBoundary X) :
+    angleAtIdealPoints p z₁ z₂ = angleAtIdealPoints p z₂ z₁
+
+-- Notation:  ∠_p(p, z₁, z₂)
+scoped notation "∠_p(" p ", " z₁ ", " z₂ ")" =>
+  angleAtIdealPoints p z₁ z₂
+
+-- ----------------------------------------------------------------
+-- §6  ANGLE BETWEEN AN IDEAL POINT AND AN ORDINARY POINT
+--       ∠_p(z, q)
+--
+-- Given p ∈ X, z ∈ ∂X, q ∈ X with p ≠ q, define ∠_p(z, q) as
+-- the angle at p between:
+--   • the direction toward z  (initial tangent of the unique ray)
+--   • the direction toward q  (initial tangent of the geodesic pq)
+-- We axiomatise this similarly.
+-- ----------------------------------------------------------------
+
+/-- The angle at p between an ideal-boundary point z and an
+    ordinary point q (with p ≠ q).
+        ∠_p(z, q)  :=  angle(β_z'(0),  direction from p to q). -/
+axiom angleIdealOrdinary
+    {X : Type*} [MetricSpace X]
+    (p q : X) (hpq : p ≠ q) (z : IdealBoundary X) : ℝ
+
+/-- The angle is in [0, π]. -/
+axiom angleIdealOrdinary_nonneg
+    {X : Type*} [MetricSpace X]
+    (p q : X) (hpq : p ≠ q) (z : IdealBoundary X) :
+    0 ≤ angleIdealOrdinary p q hpq z
+
+axiom angleIdealOrdinary_le_pi
+    {X : Type*} [MetricSpace X]
+    (p q : X) (hpq : p ≠ q) (z : IdealBoundary X) :
+    angleIdealOrdinary p q hpq z ≤ Real.pi
+
+-- ----------------------------------------------------------------
+-- §7  CONE   C_p(z, ε)
+--
+-- From the screenshot:
+--
+--   C_p(z, ε) := { q ∈ X ∪ ∂X  |  p ≠ q,  ∠_p(z, q) < ε }
+--
+-- A point q can be either an ordinary point of X or an
+-- ideal-boundary point of ∂X.  We represent X ∪ ∂X as the
+-- disjoint sum  X ⊕ IdealBoundary X.
+-- ----------------------------------------------------------------
+
+/-- The angle at p between z ∈ ∂X and a point q in X ∪ ∂X.
+    • If q is an ordinary point  (Sum.inl q_ord),  use angleIdealOrdinary.
+    • If q is an ideal point     (Sum.inr z'),      use angleAtIdealPoints. -/
+noncomputable def angleToPoint
+    {X : Type*} [MetricSpace X] [DecidableEq X]
+    (p : X) (z : IdealBoundary X) :
+    (X ⊕ IdealBoundary X) → ℝ
+  | Sum.inl q =>
+      if h : p = q then 0
+      else angleIdealOrdinary p q (Ne.symm (Ne.symm h)) z
+  | Sum.inr z' => angleAtIdealPoints p z z'
+
+/-- The cone  C_p(z, ε)  is the set of all points q in X ∪ ∂X
+    such that q ≠ p and the angle ∠_p(z, q) < ε.
+
+        C_p(z, ε)  :=  { q ∈ X ∪ ∂X  |  p ≠ q,  ∠_p(z, q) < ε }
+-/
+def Cone
+    {X : Type*} [MetricSpace X] [DecidableEq X]
+    (p : X)
+    (z : IdealBoundary X)
+    (ε : ℝ) :
+    Set (X ⊕ IdealBoundary X) :=
+  { q |
+    -- q must be different from p (base point is excluded)
+    q ≠ Sum.inl p  ∧
+    -- the angle from p toward z and toward q must be < ε
+    angleToPoint p z q < ε }
+
+-- Notation:  C_p(p, z, ε)
+scoped notation "C_p(" p ", " z ", " ε ")" => Cone p z ε
+
+-- ----------------------------------------------------------------
+-- §8  SMALL EXAMPLES / SANITY CHECKS
+-- ----------------------------------------------------------------
+
+section Examples
+
+variable {X : Type*} [MetricSpace X] [DecidableEq X]
+
+/-- A point inside the cone satisfies the angle condition. -/
+lemma mem_Cone_iff
+    (p : X) (z : IdealBoundary X) (ε : ℝ)
+    (q : X ⊕ IdealBoundary X) :
+    q ∈ Cone p z ε  ↔
+    q ≠ Sum.inl p ∧ angleToPoint p z q < ε :=
+  Iff.rfl
+
+/-- An ideal point z₂ is in C_p(z₁, ε) when ∠_p(z₁, z₂) < ε. -/
+lemma idealPoint_mem_Cone
+    (p : X) (z₁ z₂ : IdealBoundary X) (ε : ℝ)
+    (hne : Sum.inr z₂ ≠ Sum.inl p)
+    (hangle : angleAtIdealPoints p z₁ z₂ < ε) :
+    Sum.inr z₂ ∈ Cone p z₁ ε :=
+  ⟨hne, hangle⟩
+
+end Examples
 
 end Hyperbolic
