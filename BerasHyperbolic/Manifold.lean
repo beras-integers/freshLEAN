@@ -55,7 +55,8 @@ structure HyperbolicMetric (n : ℕ) where
 
 def HyperbolicPlane2 : Type := HyperbolicSpace 2
 
-instance (n : ℕ) : TopologicalSpace (HyperbolicSpace n) := ⊤
+instance (n : ℕ) : TopologicalSpace (HyperbolicSpace n) :=
+  (⊤ : TopologicalSpace (HyperbolicSpace n))
 
 structure HyperbolicMetricSpace (n : ℕ) where
   metric : HyperbolicMetric n
@@ -152,7 +153,7 @@ structure GeodesicRay (X : Type*) [MetricSpace X] where
 -- §2  ASYMPTOTIC GEODESIC RAYS
 --
 -- Two unit-speed geodesic rays β₁, β₂ : [0, ∞) → X are
--- *asymptotic* when
+-- *asymptotic* whenr
 --
 --        limsup_{t → ∞}  d(β₁(t), β₂(t))  < ∞.
 --
@@ -168,8 +169,8 @@ def Asymptotic {X : Type*} [MetricSpace X]
   -- Expressed via Mathlib's Filter.limsup along atTop.
   -- We cast dist values to ℝ≥0∞ so that limsup and ⊤ are well-typed.
   (Filter.limsup
-    (fun t : ℝ≥0 => ENNReal.ofReal (dist (β₁.toFun t) (β₂.toFun t)))
-    Filter.atTop : ℝ≥0∞)
+      (fun t : ℝ≥0 => ENNReal.ofReal (dist (β₁.toFun t) (β₂.toFun t)))
+      Filter.atTop)
   < ⊤
 
 -- ----------------------------------------------------------------
