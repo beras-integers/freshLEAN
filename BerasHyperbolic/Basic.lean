@@ -171,11 +171,8 @@ def dist (p q : H3) : ℝ := arccosh (coshArg p q)
 
 lemma dist_symm (p q : H3) : dist p q = dist q p := by
   unfold dist coshArg
-  congr 1
   rw [norm_sub_rev]
   ring_nf
-  -- |p.z - q.z| = |q.z - p.z| and the rest is symmetric in p,q
-  -- sorry
 
 lemma dist_nonneg (p q : H3) : 0 ≤ dist p q := by
   unfold dist
@@ -475,8 +472,8 @@ theorem F3_arc_length_comparison (γ : ℝ → H3) (s₁ s₂ : ℝ) (hs : s₁ 
                  MeasureTheory.volume s₁ s₂)
     (hS_eucl : IntervalIntegrable (fun t => euclidSpeed γ t)
                  MeasureTheory.volume s₁ s₂) :
-    a * ∫ t in s₁..s₂, hypSpeed γ t ≤ ∫ t in s₁..s₂, euclidSpeed γ t ∧
-    ∫ t in s₁..s₂, euclidSpeed γ t ≤ b * ∫ t in s₁..s₂, hypSpeed γ t := by
+    (a * ∫ t in s₁..s₂, hypSpeed γ t ≤ ∫ t in s₁..s₂, euclidSpeed γ t) ∧
+    (∫ t in s₁..s₂, euclidSpeed γ t ≤ b * ∫ t in s₁..s₂, hypSpeed γ t) := by
   constructor
   · rw [← intervalIntegral.integral_const_mul]
     apply intervalIntegral.integral_mono_on hs (hS_hyp.const_mul a) hS_eucl
